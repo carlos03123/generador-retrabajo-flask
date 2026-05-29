@@ -2,7 +2,8 @@
 
 **Proyecto Final de la materia Paradigmas de Programacion**  
 **UABC Campus Otay | 2026-1**  
-**Alumno:** Carlos Rene Lopez Cervantes Villanueva Chavez Cesar Gabriel
+**Alumno:** Carlos Rene Lopez Cervantes
+Villanueva Chavez Cesar Gabriel
 
 ---
 
