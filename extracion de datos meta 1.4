@@ -1,0 +1,96 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import os
+
+
+def realizar_busqueda(nombre_producto, cantidad_paginas):
+
+    # Configuración del navegador
+    opciones = Options()
+    opciones.add_argument("--window-size=1920,1080")
+
+    driver = webdriver.Chrome(options=opciones)
+    espera = WebDriverWait(driver, 10)
+
+    # Carpeta para guardar las capturas
+    carpeta = "capturas"
+    os.makedirs(carpeta, exist_ok=True)
+
+    try:
+        # Abrir Mercado Libre
+        driver.get("https://www.mercadolibre.com.mx/")
+
+        # Esperar a que aparezca el buscador
+        buscador = espera.until(
+            EC.presence_of_element_located((By.ID, "cb1-edit"))
+        )
+
+        # Escribir el producto
+        buscador.send_keys(nombre_producto)
+        buscador.send_keys(Keys.ENTER)
+
+        # Esperar a que carguen los resultados
+        espera.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "ol.ui-search-layout"))
+        )
+
+        # Capturar cada página
+        for numero_pagina in range(1, cantidad_paginas + 1):
+
+            archivo = os.path.join(
+                carpeta,
+                f"resultado_{nombre_producto}_pag_{numero_pagina}.png"
+            )
+
+            driver.save_screenshot(archivo)
+
+            print(f"Página {numero_pagina} guardada correctamente.")
+
+            # Si ya llegamos a la última página, terminamos
+            if numero_pagina == cantidad_paginas:
+                break
+
+            try:
+                # Buscar el botón "Siguiente"
+                siguiente = espera.until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//a[contains(., 'Siguiente')]")
+                    )
+                )
+
+                # Llevar el botón a la vista
+                driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});",
+                    siguiente
+                )
+
+                # Hacer clic
+                siguiente.click()
+
+                # Esperar a que cargue la siguiente página
+                espera.until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "ol.ui-search-layout")
+                    )
+                )
+
+            except Exception as error:
+                print(f"No fue posible pasar a la página {numero_pagina + 1}.")
+                print("Error:", error)
+                break
+
+    finally:
+        driver.quit()
+
+
+# Programa principal
+if __name__ == "__main__":
+
+    producto = input("Escribe el producto que deseas buscar: ")
+    paginas = int(input("Escribe el número de páginas a consultar: "))
+
+    realizar_busqueda(producto, paginas)
