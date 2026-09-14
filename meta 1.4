@@ -1,0 +1,133 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+
+
+def buscar_producto(producto, paginas):
+
+    opciones = Options()
+    opciones.add_argument("--window-size=1920,1080")
+
+    navegador = webdriver.Chrome(options=opciones)
+
+    datos = []
+
+    busqueda = producto.replace(" ", "+")
+
+    try:
+
+        for pagina in range(1, paginas + 1):
+
+            print("Consultando pagina", pagina)
+
+            url = f"https://www.amazon.com.mx/s?k={busqueda}&page={pagina}"
+
+            navegador.get(url)
+
+            time.sleep(5)
+
+            html = navegador.page_source
+            soup = BeautifulSoup(html, "html.parser")
+
+            productos = soup.find_all(
+                "div",
+                attrs={"data-component-type": "s-search-result"}
+            )
+
+            print("Productos encontrados:", len(productos))
+
+            if len(productos) == 0:
+                print("No se encontraron productos.")
+                break
+
+            for item in productos:
+
+                nombre = item.find("h2")
+
+                if nombre is None:
+                    continue
+
+                precio = item.find(
+                    "span",
+                    class_="a-offscreen"
+                )
+
+                rating = item.find(
+                    "span",
+                    class_="a-icon-alt"
+                )
+
+                entrega = item.find(
+                    "div",
+                    class_="udm-primary-delivery-message"
+                )
+
+                if precio:
+                    precio_texto = precio.text.strip()
+                else:
+                    precio_texto = "Sin precio"
+
+                if rating:
+                    rating_texto = rating.text.strip()
+                else:
+                    rating_texto = "Sin calificacion"
+
+                if entrega:
+                    entrega_texto = entrega.text.strip()
+                else:
+                    entrega_texto = "Sin fecha de entrega"
+
+                datos.append([
+                    pagina,
+                    nombre.text.strip(),
+                    precio_texto,
+                    rating_texto,
+                    entrega_texto
+                ])
+
+    except Exception as error:
+
+        print("Ocurrio un error:", error)
+
+    finally:
+        navegador.quit()
+
+    df = pd.DataFrame(
+        datos,
+        columns=[
+            "pagina",
+            "nombre",
+            "precio",
+            "rating",
+            "entrega"
+        ]
+    )
+
+    archivo = "amazon_" + busqueda + ".csv"
+
+    df.to_csv(
+        archivo,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print("\nBusqueda terminada")
+    print("Total de productos:", len(df))
+    print("Archivo guardado:", archivo)
+
+    print(df)
+
+    return df
+
+
+if __name__ == "__main__":
+
+    producto = input("¿Que producto quieres buscar? ")
+
+    paginas = int(
+        input("¿Cuantas paginas quieres visitar?: ")
+    )
+
+    buscar_producto(producto, paginas)
